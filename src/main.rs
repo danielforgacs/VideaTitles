@@ -3,6 +3,7 @@ use std::io::Read;
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
+const CHAR_MAX_UNICODE_CODEPOINT: u32 = 512;
 
 struct Movie {
     title: String,
@@ -34,7 +35,7 @@ fn main() -> Result<(), reqwest::Error> {
     let page_count = matches.value_of("pagecount").unwrap().parse::<u16>().unwrap();
 
     if page_count < 1 || page_count > MAX_PAGES {
-        println!("Page count must be in range: 1 - 100.");
+        println!("Page count must be in range: 1 - {}.", MAX_PAGES);
         return Ok(());
     }
 
@@ -48,6 +49,12 @@ fn main() -> Result<(), reqwest::Error> {
 
         'cap: for cap in re.captures_iter(&text) {
             let movie = Movie::from_capture(cap);
+            for letter in movie.title.chars() {
+                if letter as u32 > CHAR_MAX_UNICODE_CODEPOINT {
+                    eprintln!(r#"skipping on bad char: "{}", {} - {}"#, letter, letter as u32, movie.title);
+                    continue 'cap;
+                }
+            }
             for phrase in blacklist.lines() {
                 if movie.title.contains(phrase) {
                     continue 'cap;
@@ -59,6 +66,7 @@ fn main() -> Result<(), reqwest::Error> {
 
     movies.sort_by_key(|m| m.title.clone());
 
+    println!("");
     for movie in movies {
         println!("{}", movie);
     }
