@@ -23,6 +23,10 @@ impl std::fmt::Display for Movie {
 }
 
 fn main() -> Result<(), reqwest::Error> {
+    let black_list = vec![
+        "szerelem",
+        "elveszett város 2022",
+    ];
     let re = regex::Regex::new(TITLE_REGEX_PATTERN).unwrap();
     let mut movies: Vec<Movie> = vec![];
 
@@ -31,8 +35,15 @@ fn main() -> Result<(), reqwest::Error> {
         let response = reqwest::blocking::get(url)?;
         let text = response.text()?;
 
-        for cap in re.captures_iter(&text) {
-            movies.push(Movie::from_capture(cap));
+        'cap: for cap in re.captures_iter(&text) {
+            let movie = Movie::from_capture(cap);
+            for phrase in &black_list {
+                if movie.title.contains(phrase) {
+                    println!("found");
+                    continue 'cap;
+                }
+            }
+            movies.push(movie);
         }
     }
 
