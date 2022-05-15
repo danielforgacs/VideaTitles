@@ -24,8 +24,8 @@ impl std::fmt::Display for Movie {
 
 fn main() -> Result<(), reqwest::Error> {
     let black_list = vec![
-        "szerelem",
-        "elveszett város 2022",
+        "Λεπτά",
+        "може",
     ];
     let re = regex::Regex::new(TITLE_REGEX_PATTERN).unwrap();
     let mut movies: Vec<Movie> = vec![];
@@ -39,7 +39,6 @@ fn main() -> Result<(), reqwest::Error> {
             let movie = Movie::from_capture(cap);
             for phrase in &black_list {
                 if movie.title.contains(phrase) {
-                    println!("found");
                     continue 'cap;
                 }
             }
