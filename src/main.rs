@@ -52,10 +52,8 @@ fn main() -> Result<(), reqwest::Error> {
             if contains_out_of_range_char(&movie.title) {
                 continue;
             }
-            for phrase in blacklist.lines() {
-                if movie.title.contains(phrase) {
-                    continue;
-                }
+            if found_in_blacklist(&movie.title, &blacklist) {
+                continue;
             }
             movies.push(movie);
         }
@@ -75,6 +73,15 @@ fn contains_out_of_range_char(title: &str) -> bool {
     for letter in title.chars() {
         if letter as u32 > MAX_UTF8 {
             eprintln!(r#"skipping on bad char: {:>6} (as u32): "{}" - {}"#, letter as u32, letter, title);
+            return true;
+        }
+    }
+    false
+}
+
+fn found_in_blacklist(title: &str, blacklist: &str) -> bool {
+    for phrase in blacklist.lines() {
+        if title.contains(phrase) {
             return true;
         }
     }
