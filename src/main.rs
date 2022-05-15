@@ -3,7 +3,7 @@ use std::io::Read;
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
-const CHAR_MAX_UNICODE_CODEPOINT: u32 = 512;
+const MAX_UTF8: u32 = 800;
 
 struct Movie {
     title: String,
@@ -47,17 +47,14 @@ fn main() -> Result<(), reqwest::Error> {
         let response = reqwest::blocking::get(url)?;
         let text = response.text()?;
 
-        'cap: for cap in re.captures_iter(&text) {
+        for cap in re.captures_iter(&text) {
             let movie = Movie::from_capture(cap);
-            for letter in movie.title.chars() {
-                if letter as u32 > CHAR_MAX_UNICODE_CODEPOINT {
-                    eprintln!(r#"skipping on bad char: "{}", {} - {}"#, letter, letter as u32, movie.title);
-                    continue 'cap;
-                }
+            if contains_out_of_range_char(&movie.title) {
+                continue;
             }
             for phrase in blacklist.lines() {
                 if movie.title.contains(phrase) {
-                    continue 'cap;
+                    continue;
                 }
             }
             movies.push(movie);
@@ -72,4 +69,14 @@ fn main() -> Result<(), reqwest::Error> {
     }
 
     Ok(())
+}
+
+fn contains_out_of_range_char(title: &str) -> bool {
+    for letter in title.chars() {
+        if letter as u32 > MAX_UTF8 {
+            eprintln!(r#"skipping on bad char: {:>6} (as u32): "{}" - {}"#, letter as u32, letter, title);
+            return true;
+        }
+    }
+    false
 }
