@@ -40,23 +40,24 @@ fn main() -> Result<(), reqwest::Error> {
     }
 
     let re = regex::Regex::new(TITLE_REGEX_PATTERN).unwrap();
-    let mut movies: Vec<Movie> = vec![];
+    let mut pages: Vec<String> = Vec::new();
 
     for index in 1..page_count + 1 {
         let url = format!("{}{}", URL_TEMPLATE, index);
         let response = reqwest::blocking::get(url)?;
-        let text = response.text()?;
+        pages.push(response.text()?);
+    }
 
-        for cap in re.captures_iter(&text) {
-            let movie = Movie::from_capture(cap);
-            if contains_out_of_range_char(&movie.title) {
-                continue;
-            }
-            if found_in_blacklist(&movie.title, &blacklist) {
-                continue;
-            }
-            movies.push(movie);
+    let mut movies: Vec<Movie> = vec![];
+    for cap in re.captures_iter(&pages.join("\n")) {
+        let movie = Movie::from_capture(cap);
+        if contains_out_of_range_char(&movie.title) {
+            continue;
         }
+        if found_in_blacklist(&movie.title, &blacklist) {
+            continue;
+        }
+        movies.push(movie);
     }
 
     movies.sort_by_key(|m| m.title.clone());
