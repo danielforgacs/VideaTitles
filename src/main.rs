@@ -36,6 +36,8 @@ fn main() -> Result<(), reqwest::Error> {
         }
     }
 
+    movies.sort_by_key(|m| m.title.clone());
+
     for movie in movies {
         println!("{}", movie);
     }
