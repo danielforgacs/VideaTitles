@@ -4,6 +4,9 @@ const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
 const MAX_UTF8: u32 = 800;
+const BLACKLIST_FILE_NAME: &str = ".videablacklist.txt";
+
+type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 struct Movie {
     title: String,
@@ -25,10 +28,7 @@ impl std::fmt::Display for Movie {
     }
 }
 
-fn main() -> Result<(), reqwest::Error> {
-    let mut file = std::fs::File::open("blacklist.txt").unwrap();
-    let mut blacklist = String::new();
-    file.read_to_string(&mut blacklist).unwrap();
+fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
         .arg(clap::Arg::new("pagecount").default_value("1"))
         .get_matches();
@@ -48,6 +48,7 @@ fn main() -> Result<(), reqwest::Error> {
         pages.push(response.text()?);
     }
 
+    let blacklist = read_or_create_blacklist()?;
     let mut movies: Vec<Movie> = vec![];
     for cap in re.captures_iter(&pages.join("\n")) {
         let movie = Movie::from_capture(cap);
@@ -87,4 +88,21 @@ fn found_in_blacklist(title: &str, blacklist: &str) -> bool {
         }
     }
     false
+}
+
+fn read_or_create_blacklist() -> MyResult<String> {
+    let home_dir = std::env::var("HOME")?;
+    let black_list_path = std::path::Path::new(&home_dir);
+    let black_list_path = black_list_path.canonicalize()?;
+    let black_list_path = black_list_path.join(BLACKLIST_FILE_NAME);
+
+    if !black_list_path.is_file() {
+        println!("Creating empty blacklist: {}", black_list_path.to_str().unwrap());
+        std::fs::File::create(&black_list_path)?;
+    };
+
+    let mut file = std::fs::File::open(black_list_path)?;
+    let mut blacklist = String::new();
+    file.read_to_string(&mut blacklist).unwrap();
+    Ok(blacklist)
 }
