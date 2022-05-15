@@ -1,4 +1,4 @@
-const PAGE_COUNT: u16 = 1;
+const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
 
@@ -23,6 +23,14 @@ impl std::fmt::Display for Movie {
 }
 
 fn main() -> Result<(), reqwest::Error> {
+    let matches = clap::Command::new("vidatitles")
+        .arg(clap::Arg::new("pagecount").default_value("1"))
+        .get_matches();
+    let page_count = matches.value_of("pagecount").unwrap().parse::<u16>().unwrap();
+    if page_count < 1 || page_count > MAX_PAGES {
+        println!("Page count must be in range: 1 - 100.");
+        return Ok(());
+    }
     let black_list = vec![
         "Λεπτά",
         "може",
@@ -30,7 +38,7 @@ fn main() -> Result<(), reqwest::Error> {
     let re = regex::Regex::new(TITLE_REGEX_PATTERN).unwrap();
     let mut movies: Vec<Movie> = vec![];
 
-    for index in 1..PAGE_COUNT + 1 {
+    for index in 1..page_count + 1 {
         let url = format!("{}{}", URL_TEMPLATE, index);
         let response = reqwest::blocking::get(url)?;
         let text = response.text()?;
