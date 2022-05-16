@@ -31,6 +31,7 @@ impl std::fmt::Display for Movie {
 
 fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
+        .about("2022.5.16")
         .arg(clap::Arg::new("pagecount").default_value("1"))
         .arg(clap::Arg::new("pageoffset").short('o').long("offset").default_value("0"))
         .get_matches();
