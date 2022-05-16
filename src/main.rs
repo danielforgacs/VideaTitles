@@ -4,7 +4,8 @@ const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
 const MAX_UTF8: u32 = 800;
-const BLACKLIST_FILE_NAME: &str = ".videablacklist.txt";
+const BLACKLIST_FILE_NAME: &str = "videablacklist.txt";
+const MAX_BAD_CHAR_COUNT: u8 = 5;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -30,9 +31,12 @@ impl std::fmt::Display for Movie {
 
 fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
+        .about("2022.5.16")
         .arg(clap::Arg::new("pagecount").default_value("1"))
+        .arg(clap::Arg::new("pageoffset").short('o').long("offset").default_value("0"))
         .get_matches();
     let page_count = matches.value_of("pagecount").unwrap().parse::<u16>().unwrap();
+    let page_offset = matches.value_of("pageoffset").unwrap().parse::<u16>().unwrap();
 
     if page_count < 1 || page_count > MAX_PAGES {
         println!("Page count must be in range: 1 - {}.", MAX_PAGES);
@@ -43,7 +47,7 @@ fn main() -> MyResult<()> {
     let mut pages: Vec<String> = Vec::new();
 
     for index in 1..page_count + 1 {
-        let url = format!("{}{}", URL_TEMPLATE, index);
+        let url = format!("{}{}", URL_TEMPLATE, index + page_offset);
         let response = reqwest::blocking::get(url)?;
         pages.push(response.text()?);
     }
@@ -53,9 +57,11 @@ fn main() -> MyResult<()> {
     for cap in re.captures_iter(&pages.join("\n")) {
         let movie = Movie::from_capture(cap);
         if contains_out_of_range_char(&movie.title) {
+            eprintln!("{:<25}{}", "bad char:", movie);
             continue;
         }
         if found_in_blacklist(&movie.title, &blacklist) {
+            eprintln!("{:<25}{}", "blacklisted:", movie);
             continue;
         }
         movies.push(movie);
@@ -72,10 +78,14 @@ fn main() -> MyResult<()> {
 }
 
 fn contains_out_of_range_char(title: &str) -> bool {
+    let mut bad_char_count = 0;
     for letter in title.chars() {
-        if letter as u32 > MAX_UTF8 {
-            eprintln!(r#"skipping on bad char: {:>6} (as u32): "{}" - {}"#, letter as u32, letter, title);
-            return true;
+        let letter_b = letter as u32;
+        if letter_b > MAX_UTF8 {
+            bad_char_count += 1;
+            if bad_char_count > MAX_BAD_CHAR_COUNT {
+                return true;
+            }
         }
     }
     false
@@ -105,4 +115,28 @@ fn read_or_create_blacklist() -> MyResult<String> {
     let mut blacklist = String::new();
     file.read_to_string(&mut blacklist).unwrap();
     Ok(blacklist)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn finds_illegal_characters() {
+        let cases = [
+            ("Каан Урганджъоулу- репортаж", true),
+            ("Luke 11:9-13 – How to Get the Holy Spirit!", false),
+            ("Tiltott gyümölcs - 304. rész ‼️💭", false),
+            ("К", false),
+            ("КК", false),
+            ("ККК", false),
+            ("К     КК", false),
+            ("КККК", false),
+            ("ККККК", true),
+            ("КККК      К", true),
+        ];
+        for (title, expected) in cases {
+            assert_eq!(contains_out_of_range_char(title), expected);
+        }
+    }
 }
