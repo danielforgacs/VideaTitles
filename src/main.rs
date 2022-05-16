@@ -4,7 +4,7 @@ const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
 const MAX_UTF8: u32 = 800;
-const BLACKLIST_FILE_NAME: &str = ".videablacklist.txt";
+const BLACKLIST_FILE_NAME: &str = "videablacklist.txt";
 const MAX_BAD_CHAR_COUNT: u8 = 5;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
