@@ -51,7 +51,7 @@ fn main() -> MyResult<()> {
     let mut pages: Vec<String> = Vec::new();
 
     for index in 1..page_count + 1 {
-        let url = format!("{}{}", URL_TEMPLATE, index);
+        let url = format!("{}{}", URL_TEMPLATE, index + page_offset);
         let response = reqwest::blocking::get(url)?;
         pages.push(response.text()?);
     }
