@@ -37,8 +37,10 @@ impl std::fmt::Display for Movie {
 fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
         .arg(clap::Arg::new("pagecount").default_value("1"))
+        .arg(clap::Arg::new("pageoffset").default_value("0"))
         .get_matches();
     let page_count = matches.value_of("pagecount").unwrap().parse::<u16>().unwrap();
+    let page_offset = matches.value_of("pageoffset").unwrap().parse::<u16>().unwrap();
 
     if page_count < 1 || page_count > MAX_PAGES {
         println!("Page count must be in range: 1 - {}.", MAX_PAGES);
