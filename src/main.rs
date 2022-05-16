@@ -5,12 +5,7 @@ const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&cat
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
 const MAX_UTF8: u32 = 800;
 const BLACKLIST_FILE_NAME: &str = ".videablacklist.txt";
-const ALLOWED_CHARS: [u32; 4] = [
-    0x2013, // "–"
-    0x203C, // "‼"
-    0xFE0F, // "️"
-    0x1F4AD, // "💭"
-];
+const MAX_BAD_CHAR_COUNT: u8 = 5;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -82,10 +77,12 @@ fn main() -> MyResult<()> {
 }
 
 fn contains_out_of_range_char(title: &str) -> bool {
+    let mut bad_char_count = 0;
     for letter in title.chars() {
-        if letter as u32 > MAX_UTF8 {
-            if !ALLOWED_CHARS.contains(&(letter as u32)) {
-                eprintln!(r#"{:<25}0x{:>04X} "{}" - {}"#, "skipping on bad char:", letter as u32, letter, title);
+        let letter_b = letter as u32;
+        if letter_b > MAX_UTF8 {
+            bad_char_count += 1;
+            if bad_char_count > MAX_BAD_CHAR_COUNT {
                 return true;
             }
         }
@@ -129,6 +126,13 @@ mod test {
             ("Каан Урганджъоулу- репортаж", true),
             ("Luke 11:9-13 – How to Get the Holy Spirit!", false),
             ("Tiltott gyümölcs - 304. rész ‼️💭", false),
+            ("К", false),
+            ("КК", false),
+            ("ККК", false),
+            ("К     КК", false),
+            ("КККК", false),
+            ("ККККК", true),
+            ("КККК      К", true),
         ];
         for (title, expected) in cases {
             assert_eq!(contains_out_of_range_char(title), expected);
