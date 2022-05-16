@@ -57,9 +57,11 @@ fn main() -> MyResult<()> {
     for cap in re.captures_iter(&pages.join("\n")) {
         let movie = Movie::from_capture(cap);
         if contains_out_of_range_char(&movie.title) {
+            eprintln!("{:<25}{}", "bad char:", movie);
             continue;
         }
         if found_in_blacklist(&movie.title, &blacklist) {
+            eprintln!("{:<25}{}", "blacklisted:", movie);
             continue;
         }
         movies.push(movie);
@@ -78,7 +80,7 @@ fn main() -> MyResult<()> {
 fn contains_out_of_range_char(title: &str) -> bool {
     for letter in title.chars() {
         if letter as u32 > MAX_UTF8 && !ALLOWED_CHARS.contains(&letter) {
-            eprintln!(r#"skipping on bad char: {:>6} (as u32): "{}" - {}"#, letter as u32, letter, title);
+            eprintln!(r#"{:<25}0x{:>04X} "{}" - {}"#, "skipping on bad char:", letter as u32, letter, title);
             return true;
         }
     }
