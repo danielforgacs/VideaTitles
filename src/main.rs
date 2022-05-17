@@ -1,4 +1,5 @@
 use std::io::Read;
+use crossterm::style::{SetForegroundColor, Color, ResetColor};
 
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
@@ -6,6 +7,7 @@ const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*
 const MAX_UTF8: u32 = 800;
 const BLACKLIST_FILE_NAME: &str = "videablacklist.txt";
 const MAX_BAD_CHAR_COUNT: u8 = 5;
+const SIMILAR_MATCH_CHAR_COUNT: u8 = 8;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -70,11 +72,38 @@ fn main() -> MyResult<()> {
     movies.sort_by_key(|m| m.title.clone());
 
     println!("");
+
+    let mut previous_movie = String::from("");
     for movie in movies {
+        if is_similar_title(&movie.title, &previous_movie) {
+            print!("{}", SetForegroundColor(Color::DarkGrey));
+        };
         println!("{}", movie);
+        if is_similar_title(&movie.title, &previous_movie) {
+            print!("{}", ResetColor);
+        };
+        previous_movie = movie.title.clone();
     }
 
     Ok(())
+}
+
+fn is_similar_title(t0: &str, t1: &str) -> bool {
+    let mut match_count = 0;
+    let char_count = if t0.len() < t1.len() {
+        t0.len()
+    } else {
+        t1.len()
+    };
+    for i in 0..char_count {
+        if t0.chars().nth(i) == t1.chars().nth(i) {
+            match_count += 1;
+        }
+        if match_count == SIMILAR_MATCH_CHAR_COUNT {
+            return true;
+        }
+    }
+    false
 }
 
 fn contains_out_of_range_char(title: &str) -> bool {
@@ -140,5 +169,14 @@ mod test {
         for (title, expected) in cases {
             assert_eq!(contains_out_of_range_char(title), expected);
         }
+    }
+
+    #[test]
+    fn similar_char_count() {
+        assert!(!is_similar_title("12345", "12345"));
+        assert!(!is_similar_title("1234567", "1234567"));
+        assert!(is_similar_title("12345678", "12345678"));
+        assert!(is_similar_title("12345678", "12345678"));
+        assert!(!is_similar_title("   !", "   aj"));
     }
 }
