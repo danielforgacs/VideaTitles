@@ -1,5 +1,8 @@
+use crossterm::style::{
+    Attribute::{Bold, Reset},
+    Color, SetForegroundColor,
+};
 use std::io::Read;
-use crossterm::style::{SetForegroundColor, Color, Attribute::{Reset, Bold}};
 
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
@@ -52,10 +55,23 @@ fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
         .about("2022.5.16")
         .arg(clap::Arg::new("pagecount").default_value("1"))
-        .arg(clap::Arg::new("pageoffset").short('o').long("offset").default_value("0"))
+        .arg(
+            clap::Arg::new("pageoffset")
+                .short('o')
+                .long("offset")
+                .default_value("0"),
+        )
         .get_matches();
-    let page_count = matches.value_of("pagecount").unwrap().parse::<u16>().unwrap();
-    let page_offset = matches.value_of("pageoffset").unwrap().parse::<u16>().unwrap();
+    let page_count = matches
+        .value_of("pagecount")
+        .unwrap()
+        .parse::<u16>()
+        .unwrap();
+    let page_offset = matches
+        .value_of("pageoffset")
+        .unwrap()
+        .parse::<u16>()
+        .unwrap();
 
     if page_count < 1 || page_count > MAX_PAGES {
         println!("Page count must be in range: 1 - {}.", MAX_PAGES);
@@ -154,7 +170,10 @@ fn read_or_create_blacklist() -> MyResult<String> {
     let black_list_path = black_list_path.join(BLACKLIST_FILE_NAME);
 
     if !black_list_path.is_file() {
-        println!("Creating empty blacklist: {}", black_list_path.to_str().unwrap());
+        println!(
+            "Creating empty blacklist: {}",
+            black_list_path.to_str().unwrap()
+        );
         std::fs::File::create(&black_list_path)?;
     };
 
@@ -200,18 +219,36 @@ mod test {
 
     #[test]
     fn finding_year_in_titles() {
-            let movie = Movie { title: "laksdfhj".to_string(), url: "".to_string()};
-            assert!(!movie.contains_year());
-            let movie = Movie { title: "laks1234dfhj".to_string(), url: "".to_string()};
-            assert!(!movie.contains_year());
-            let movie = Movie { title: "laks1234 0000 dfhj".to_string(), url: "".to_string()};
-            assert!(!movie.contains_year());
+        let movie = Movie {
+            title: "laksdfhj".to_string(),
+            url: "".to_string(),
+        };
+        assert!(!movie.contains_year());
+        let movie = Movie {
+            title: "laks1234dfhj".to_string(),
+            url: "".to_string(),
+        };
+        assert!(!movie.contains_year());
+        let movie = Movie {
+            title: "laks1234 0000 dfhj".to_string(),
+            url: "".to_string(),
+        };
+        assert!(!movie.contains_year());
 
-            let movie = Movie { title: "laks1234 2000 dfhj".to_string(), url: "".to_string()};
-            assert!(movie.contains_year());
-            let movie = Movie { title: "laks1234 aksdj 233 2000".to_string(), url: "".to_string()};
-            assert!(movie.contains_year());
-            let movie = Movie { title: "laks1234 aksdj 233 (2002)".to_string(), url: "".to_string()};
-            assert!(movie.contains_year());
+        let movie = Movie {
+            title: "laks1234 2000 dfhj".to_string(),
+            url: "".to_string(),
+        };
+        assert!(movie.contains_year());
+        let movie = Movie {
+            title: "laks1234 aksdj 233 2000".to_string(),
+            url: "".to_string(),
+        };
+        assert!(movie.contains_year());
+        let movie = Movie {
+            title: "laks1234 aksdj 233 (2002)".to_string(),
+            url: "".to_string(),
+        };
+        assert!(movie.contains_year());
     }
 }
