@@ -4,6 +4,7 @@ use crossterm::style::{
 };
 use std::io::Read;
 
+const VERSION: &str = "2022.5.17";
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
@@ -53,7 +54,7 @@ impl std::fmt::Display for Movie {
 
 fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
-        .about("2022.5.16")
+        .about(VERSION)
         .arg(clap::Arg::new("pagecount").default_value("1"))
         .arg(
             clap::Arg::new("pageoffset")
