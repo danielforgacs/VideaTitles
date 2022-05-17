@@ -1,5 +1,5 @@
 use std::io::Read;
-use crossterm::style::{SetForegroundColor, Color, ResetColor};
+use crossterm::style::{SetForegroundColor, Color, Attribute::{Reset, Bold}};
 
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
@@ -8,6 +8,8 @@ const MAX_UTF8: u32 = 800;
 const BLACKLIST_FILE_NAME: &str = "videablacklist.txt";
 const MAX_BAD_CHAR_COUNT: u8 = 5;
 const SIMILAR_MATCH_CHAR_COUNT: u8 = 8;
+const YEAR_MIN: u16 = 1900;
+const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -21,6 +23,21 @@ impl Movie {
         Movie {
             title: cap[2].to_owned(),
             url: cap[1].to_owned(),
+        }
+    }
+
+    fn contains_year(&self) -> bool {
+        let year_pattern = r" \({0,1}(\d{4})\){0,1}";
+        let re = regex::Regex::new(year_pattern).unwrap();
+        match re.captures(&self.title) {
+            Some(cap) => {
+                let year = match &cap[1].parse::<u16>() {
+                    Ok(year) => *year,
+                    Err(_) => 0,
+                };
+                (YEAR_MIN..=YEAR_MAX).contains(&year)
+            }
+            None => false,
         }
     }
 }
@@ -77,11 +94,12 @@ fn main() -> MyResult<()> {
     for movie in movies {
         if is_similar_title(&movie.title, &previous_movie) {
             print!("{}", SetForegroundColor(Color::DarkGrey));
+        } else if movie.contains_year() {
+            print!("{}", SetForegroundColor(Color::Green));
+            print!("{}", Bold);
         };
-        println!("{}", movie);
-        if is_similar_title(&movie.title, &previous_movie) {
-            print!("{}", ResetColor);
-        };
+        print!("{}", movie);
+        println!("{}", Reset);
         previous_movie = movie.title.clone();
     }
 
@@ -178,5 +196,22 @@ mod test {
         assert!(is_similar_title("12345678", "12345678"));
         assert!(is_similar_title("12345678", "12345678"));
         assert!(!is_similar_title("   !", "   aj"));
+    }
+
+    #[test]
+    fn finding_year_in_titles() {
+            let movie = Movie { title: "laksdfhj".to_string(), url: "".to_string()};
+            assert!(!movie.contains_year());
+            let movie = Movie { title: "laks1234dfhj".to_string(), url: "".to_string()};
+            assert!(!movie.contains_year());
+            let movie = Movie { title: "laks1234 0000 dfhj".to_string(), url: "".to_string()};
+            assert!(!movie.contains_year());
+
+            let movie = Movie { title: "laks1234 2000 dfhj".to_string(), url: "".to_string()};
+            assert!(movie.contains_year());
+            let movie = Movie { title: "laks1234 aksdj 233 2000".to_string(), url: "".to_string()};
+            assert!(movie.contains_year());
+            let movie = Movie { title: "laks1234 aksdj 233 (2002)".to_string(), url: "".to_string()};
+            assert!(movie.contains_year());
     }
 }
