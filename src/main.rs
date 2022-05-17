@@ -1,11 +1,20 @@
+use crossterm::style::{
+    Attribute::{Bold, Reset},
+    Color, SetForegroundColor,
+};
 use std::io::Read;
 
+const VERSION: &str = "2022.5.17";
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
+const YEAR_REGEX_PATTERN: &str = r"(\d{4})";
 const MAX_UTF8: u32 = 800;
 const BLACKLIST_FILE_NAME: &str = "videablacklist.txt";
 const MAX_BAD_CHAR_COUNT: u8 = 5;
+const SIMILAR_MATCH_CHAR_COUNT: u8 = 8;
+const YEAR_MIN: u16 = 1900;
+const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -21,6 +30,20 @@ impl Movie {
             url: cap[1].to_owned(),
         }
     }
+
+    fn contains_year(&self) -> bool {
+        let re = regex::Regex::new(YEAR_REGEX_PATTERN).unwrap();
+        match re.captures(&self.title) {
+            Some(cap) => {
+                let year = match &cap[1].parse::<u16>() {
+                    Ok(year) => *year,
+                    Err(_) => 0,
+                };
+                (YEAR_MIN..=YEAR_MAX).contains(&year)
+            }
+            None => false,
+        }
+    }
 }
 
 impl std::fmt::Display for Movie {
@@ -31,14 +54,27 @@ impl std::fmt::Display for Movie {
 
 fn main() -> MyResult<()> {
     let matches = clap::Command::new("vidatitles")
-        .about("2022.5.16")
+        .about(VERSION)
         .arg(clap::Arg::new("pagecount").default_value("1"))
-        .arg(clap::Arg::new("pageoffset").short('o').long("offset").default_value("0"))
+        .arg(
+            clap::Arg::new("pageoffset")
+                .short('o')
+                .long("offset")
+                .default_value("0"),
+        )
         .get_matches();
-    let page_count = matches.value_of("pagecount").unwrap().parse::<u16>().unwrap();
-    let page_offset = matches.value_of("pageoffset").unwrap().parse::<u16>().unwrap();
+    let page_count = matches
+        .value_of("pagecount")
+        .unwrap()
+        .parse::<u16>()
+        .unwrap();
+    let page_offset = matches
+        .value_of("pageoffset")
+        .unwrap()
+        .parse::<u16>()
+        .unwrap();
 
-    if page_count < 1 || page_count > MAX_PAGES {
+    if !(1..=MAX_PAGES).contains(&page_count) {
         println!("Page count must be in range: 1 - {}.", MAX_PAGES);
         return Ok(());
     }
@@ -69,12 +105,40 @@ fn main() -> MyResult<()> {
 
     movies.sort_by_key(|m| m.title.clone());
 
-    println!("");
+    println!();
+
+    let mut previous_movie = String::from("");
     for movie in movies {
-        println!("{}", movie);
+        if is_similar_title(&movie.title, &previous_movie) {
+            print!("{}", SetForegroundColor(Color::DarkGrey));
+        } else if movie.contains_year() {
+            print!("{}", SetForegroundColor(Color::Green));
+            print!("{}", Bold);
+        };
+        print!("{}", movie);
+        println!("{}", Reset);
+        previous_movie = movie.title.clone();
     }
 
     Ok(())
+}
+
+fn is_similar_title(t0: &str, t1: &str) -> bool {
+    let mut match_count = 0;
+    let char_count = if t0.len() < t1.len() {
+        t0.len()
+    } else {
+        t1.len()
+    };
+    for i in 0..char_count {
+        if t0.chars().nth(i) == t1.chars().nth(i) {
+            match_count += 1;
+        }
+        if match_count == SIMILAR_MATCH_CHAR_COUNT {
+            return true;
+        }
+    }
+    false
 }
 
 fn contains_out_of_range_char(title: &str) -> bool {
@@ -107,7 +171,10 @@ fn read_or_create_blacklist() -> MyResult<String> {
     let black_list_path = black_list_path.join(BLACKLIST_FILE_NAME);
 
     if !black_list_path.is_file() {
-        println!("Creating empty blacklist: {}", black_list_path.to_str().unwrap());
+        println!(
+            "Creating empty blacklist: {}",
+            black_list_path.to_str().unwrap()
+        );
         std::fs::File::create(&black_list_path)?;
     };
 
@@ -132,11 +199,58 @@ mod test {
             ("ККК", false),
             ("К     КК", false),
             ("КККК", false),
-            ("ККККК", true),
-            ("КККК      К", true),
+            ("ККККК", false),
+            ("КККК      К", false),
+            ("КККККК", true),
+            ("КККК      К   К ", true),
         ];
         for (title, expected) in cases {
             assert_eq!(contains_out_of_range_char(title), expected);
         }
+    }
+
+    #[test]
+    fn similar_char_count() {
+        assert!(!is_similar_title("12345", "12345"));
+        assert!(!is_similar_title("1234567", "1234567"));
+        assert!(is_similar_title("12345678", "12345678"));
+        assert!(is_similar_title("12345678", "12345678"));
+        assert!(!is_similar_title("   !", "   aj"));
+    }
+
+    #[test]
+    fn finding_year_in_titles() {
+        assert!(!Movie {
+            title: "laksdfhj".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(!Movie {
+            title: "laks1234dfhj".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(!Movie {
+            title: "laks1234 0000 dfhj".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 2000 dfhj".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 aksdj 233 2000".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 aksdj 233 (2002)".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 aksdj 233 (200) .2005.".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "a2000b".to_string(),
+            url: "".to_string(),
+        }.contains_year());
     }
 }
