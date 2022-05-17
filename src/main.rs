@@ -7,6 +7,7 @@ use std::io::Read;
 const MAX_PAGES: u16 = 250;
 const URL_TEMPLATE: &str = "https://videa.hu/kategoriak/film-animacio?sort=0&category=0&page=";
 const TITLE_REGEX_PATTERN: &str = r#"<div class="panel-video-title"><a href="(.*)" title=".*">(.*)</a></div>"#;
+const YEAR_REGEX_PATTERN: &str = r"(\d{4})";
 const MAX_UTF8: u32 = 800;
 const BLACKLIST_FILE_NAME: &str = "videablacklist.txt";
 const MAX_BAD_CHAR_COUNT: u8 = 5;
@@ -30,8 +31,7 @@ impl Movie {
     }
 
     fn contains_year(&self) -> bool {
-        let year_pattern = r" \({0,1}(\d{4})\){0,1}";
-        let re = regex::Regex::new(year_pattern).unwrap();
+        let re = regex::Regex::new(YEAR_REGEX_PATTERN).unwrap();
         match re.captures(&self.title) {
             Some(cap) => {
                 let year = match &cap[1].parse::<u16>() {
@@ -219,36 +219,37 @@ mod test {
 
     #[test]
     fn finding_year_in_titles() {
-        let movie = Movie {
+        assert!(!Movie {
             title: "laksdfhj".to_string(),
             url: "".to_string(),
-        };
-        assert!(!movie.contains_year());
-        let movie = Movie {
+        }.contains_year());
+        assert!(!Movie {
             title: "laks1234dfhj".to_string(),
             url: "".to_string(),
-        };
-        assert!(!movie.contains_year());
-        let movie = Movie {
+        }.contains_year());
+        assert!(!Movie {
             title: "laks1234 0000 dfhj".to_string(),
             url: "".to_string(),
-        };
-        assert!(!movie.contains_year());
-
-        let movie = Movie {
-            title: "laks1234 2000 dfhj".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 2000 dfhj".to_string(),
             url: "".to_string(),
-        };
-        assert!(movie.contains_year());
-        let movie = Movie {
-            title: "laks1234 aksdj 233 2000".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 aksdj 233 2000".to_string(),
             url: "".to_string(),
-        };
-        assert!(movie.contains_year());
-        let movie = Movie {
-            title: "laks1234 aksdj 233 (2002)".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 aksdj 233 (2002)".to_string(),
             url: "".to_string(),
-        };
-        assert!(movie.contains_year());
+        }.contains_year());
+        assert!(Movie {
+            title: "laks123 aksdj 233 (200) .2005.".to_string(),
+            url: "".to_string(),
+        }.contains_year());
+        assert!(Movie {
+            title: "a2000b".to_string(),
+            url: "".to_string(),
+        }.contains_year());
     }
 }
