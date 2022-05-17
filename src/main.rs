@@ -73,7 +73,7 @@ fn main() -> MyResult<()> {
         .parse::<u16>()
         .unwrap();
 
-    if page_count < 1 || page_count > MAX_PAGES {
+    if !(1..=MAX_PAGES).contains(&page_count) {
         println!("Page count must be in range: 1 - {}.", MAX_PAGES);
         return Ok(());
     }
@@ -104,7 +104,7 @@ fn main() -> MyResult<()> {
 
     movies.sort_by_key(|m| m.title.clone());
 
-    println!("");
+    println!();
 
     let mut previous_movie = String::from("");
     for movie in movies {
