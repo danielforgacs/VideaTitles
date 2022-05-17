@@ -132,8 +132,10 @@ mod test {
             ("ККК", false),
             ("К     КК", false),
             ("КККК", false),
-            ("ККККК", true),
-            ("КККК      К", true),
+            ("ККККК", false),
+            ("КККК      К", false),
+            ("КККККК", true),
+            ("КККК      К   К ", true),
         ];
         for (title, expected) in cases {
             assert_eq!(contains_out_of_range_char(title), expected);
