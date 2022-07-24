@@ -1,9 +1,12 @@
 [Shahiid-anime.net]
 A 81-es számú archívum
+A búra alatt
 A Csoda Miképp Találkoztunk
 A csodadoktor
 A férfi a méh ellen
+A föld alatti vasút
 A FORSYTE SAGA
+A hegyi doktor
 A kalózok elveszett királysága
 A KIRÁLY LEÁNYA
 A következő nemzedék
@@ -12,9 +15,6 @@ A mentalista
 A nagy pénzrablás Korea
 A nagykövet lánya
 A sólyom és a tél katonája
-Sailor moon
-Dexter
-A föld alatti vasút
 A sors keze -
 A sors könyvei
 A Sors könyvei
@@ -23,34 +23,43 @@ A szerelem aromája
 Acapulco szepe
 Ai-Chan's Secret
 Alicia új élete
+Az aranykor - The Gilded
+Az aranykor- The Gilded
 Az érzelmek tengerén
+Az utolsó zsaru
 Bab Al Harra
 Breaking bad
 Bűntények, amelyek megrázták Ausztráliát
 Csodálatos duó
 Dél királynője
+Dexter
 Dili Dolly végveszélyben
 És egyszer csak
 Észak és Dél
 Ezüsthajú hercegnő
 Fazilet asszony és lányai
 FEKETE FEHÉR SZERELEM
+Fekete vitorlák
 Fülig beléd zúgtam
 Gyilkos fejtörő
 Gyilkos sorok
+Hajdúszoboszló
 Héléne szemei
 hsf-nursej
 IFFET
 Interpol akták
 Jimmy Neutron kalandjai
 Kamen Rider Den
+Kimse Bilmez
 Kölcsön kapott szerelem
 Lego Ninjago
 Love Phantom
 Magilla Gorilla
+Majdnem megúsztam
 Marichuy - A szerelem diadala
 Marvels Runaways
 Megmenekültem a halál
+Merre jársz,
 Murdoch Mysteries
 My Liberation Notes
 NÉZD  UJRA AZ ÉLETET
@@ -61,10 +70,12 @@ Remények földje
 Resurrec de los
 Rex felügyelő
 Rick.and.Morty
+Sailor moon
 Sárkányok Irány az ismeretlen
 Slam_Dunk_Capitulo
 Star Wars A Rossz Osztag
 Star Wars Látomások
+stranger things
 Súlyemelő Tündér Kim Bok
 Szentjánosbogár
 Szerelem és más bajok
@@ -89,14 +100,3 @@ Word Of Honor
 Work Later Drink Now
 Yu-Gi-Oh
 Zűrös viszonyok
-A búra alatt
-Az aranykor- The Gilded
-Az aranykor - The Gilded
-Hajdúszoboszló
-Majdnem megúsztam
-Merre jársz,
-stranger things
-A hegyi doktor
-Az utolsó zsaru
-Fekete vitorlák
-Kimse Bilmez
