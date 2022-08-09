@@ -28,6 +28,14 @@ const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+#[derive(Queryable, Debug)]
+struct Movie {
+    id: i32,
+    title: String,
+    url: String,
+}
+
+
 #[derive(Debug)]
 struct SimpleMovie {
     title: String,
@@ -72,7 +80,10 @@ fn main() -> MyResult<()> {
     dotenv::dotenv().ok();
 
     //
-    // movies
+    let db_conn = establish_db_conn();
+    let db_movies = movie
+        .load::<Movie>(&db_conn);
+    dbg!(db_movies);
     //
 
     let matches = clap::Command::new("vidatitles")
