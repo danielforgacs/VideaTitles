@@ -84,6 +84,14 @@ fn establish_db_conn() -> PgConnection {
     PgConnection::establish(&db_url).expect("Can't connect to the database.")
 }
 
+fn create_movie(new_movie: NewMovie) {
+    let db_conn = establish_db_conn();
+    diesel::insert_into(movie::table)
+        .values(&new_movie)
+        .get_result::<Movie>(&db_conn)
+        .expect("Can't insert new movie.");
+}
+
 fn main() -> MyResult<()> {
     dotenv::dotenv().ok();
 
