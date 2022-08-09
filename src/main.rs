@@ -1,8 +1,19 @@
+mod config;
+#[macro_use]
+extern crate diesel;
+
+mod schema;
+use schema::movie::dsl::*;
+use schema::movie;
+
 use crossterm::style::{
     Attribute::{Bold, Reset},
     Color, SetForegroundColor,
 };
 use std::io::Read;
+use dotenv;
+use diesel::prelude::*;
+use diesel::pg::PgConnection;
 
 const VERSION: &str = "2022.5.17";
 const MAX_PAGES: u16 = 250;
@@ -18,14 +29,39 @@ const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+#[derive(Queryable, Debug)]
 struct Movie {
+    id: i32,
     title: String,
     url: String,
 }
 
-impl Movie {
+#[derive(Insertable)]
+#[table_name="movie"]
+struct NewMovie {
+    title: String,
+    url: String,
+}
+
+
+#[derive(Debug)]
+struct SimpleMovie {
+    title: String,
+    url: String,
+}
+
+impl NewMovie {
+    fn new(new_title: String, new_url: String) -> Self {
+        Self {
+            title: new_title,
+            url: new_url,
+        }
+    }
+}
+
+impl SimpleMovie {
     fn from_capture(cap: regex::Captures) -> Self {
-        Movie {
+        SimpleMovie {
             title: cap[2].to_owned(),
             url: cap[1].to_owned(),
         }
@@ -46,13 +82,46 @@ impl Movie {
     }
 }
 
-impl std::fmt::Display for Movie {
+impl std::fmt::Display for SimpleMovie {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:<70}{}", self.title, self.url)
     }
 }
 
+fn establish_db_conn() -> PgConnection {
+    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var must be set.");
+    PgConnection::establish(&db_url).expect("Can't connect to the database.")
+}
+
+fn create_movie(new_movie: NewMovie) {
+    let db_conn = establish_db_conn();
+    diesel::insert_into(movie::table)
+        .values(&new_movie)
+        .get_result::<Movie>(&db_conn)
+        .expect("Can't insert new movie.");
+}
+
 fn main() -> MyResult<()> {
+    dotenv::dotenv().ok();
+
+    //
+    let db_conn = establish_db_conn();
+    let db_movies = movie
+        .load::<Movie>(&db_conn);
+    dbg!(db_movies);
+
+    let new_movie = NewMovie {
+        title: "NEW_TITLE".to_string(),
+        url: "NEW_URL".to_string(),
+    };
+
+    diesel::insert_into(movie::table)
+        .values(&new_movie)
+        .get_result::<Movie>(&db_conn)
+        .expect("Error saving new movie");
+
+    //
+
     let matches = clap::Command::new("vidatitles")
         .about(VERSION)
         .arg(clap::Arg::new("pagecount").default_value("1"))
@@ -83,41 +152,48 @@ fn main() -> MyResult<()> {
     let mut pages: Vec<String> = Vec::new();
 
     for index in 1..page_count + 1 {
-        let url = format!("{}{}", URL_TEMPLATE, index + page_offset);
-        let response = reqwest::blocking::get(url)?;
+        let request_url = format!("{}{}", URL_TEMPLATE, index + page_offset);
+        let response = reqwest::blocking::get(request_url)?;
         pages.push(response.text()?);
     }
 
     let blacklist = read_or_create_blacklist()?;
-    let mut movies: Vec<Movie> = vec![];
+    let mut simple_movies: Vec<SimpleMovie> = vec![];
     for cap in re.captures_iter(&pages.join("\n")) {
-        let movie = Movie::from_capture(cap);
-        if contains_out_of_range_char(&movie.title) {
-            eprintln!("{:<25}{}", "bad char:", movie);
+        let simple_movie = SimpleMovie::from_capture(cap);
+        let new_movie = NewMovie::new(
+            simple_movie.title.clone(),
+            simple_movie.url.clone()
+        );
+        create_movie(new_movie);
+        if contains_out_of_range_char(&simple_movie.title) {
+            eprintln!("{:<25}{}", "bad char:", simple_movie);
             continue;
         }
-        if found_in_blacklist(&movie.title, &blacklist) {
-            eprintln!("{:<25}{}", "blacklisted:", movie);
+        if found_in_blacklist(&simple_movie.title, &blacklist) {
+            eprintln!("{:<25}{}", "blacklisted:", simple_movie);
             continue;
         }
-        movies.push(movie);
+        simple_movies.push(simple_movie);
     }
 
-    movies.sort_by_key(|m| m.title.clone());
+
+
+    simple_movies.sort_by_key(|m| m.title.clone());
 
     println!();
 
     let mut previous_movie = String::from("");
-    for movie in movies {
-        if is_similar_title(&movie.title, &previous_movie) {
+    for simple_movie in simple_movies {
+        if is_similar_title(&simple_movie.title, &previous_movie) {
             print!("{}", SetForegroundColor(Color::DarkGrey));
-        } else if movie.contains_year() {
+        } else if simple_movie.contains_year() {
             print!("{}", SetForegroundColor(Color::Green));
             print!("{}", Bold);
         };
-        print!("{}", movie);
+        print!("{}", simple_movie);
         println!("{}", Reset);
-        previous_movie = movie.title.clone();
+        previous_movie = simple_movie.title.clone();
     }
 
     Ok(())
@@ -141,9 +217,9 @@ fn is_similar_title(t0: &str, t1: &str) -> bool {
     false
 }
 
-fn contains_out_of_range_char(title: &str) -> bool {
+fn contains_out_of_range_char(text: &str) -> bool {
     let mut bad_char_count = 0;
-    for letter in title.chars() {
+    for letter in text.chars() {
         let letter_b = letter as u32;
         if letter_b > MAX_UTF8 {
             bad_char_count += 1;
@@ -155,9 +231,9 @@ fn contains_out_of_range_char(title: &str) -> bool {
     false
 }
 
-fn found_in_blacklist(title: &str, blacklist: &str) -> bool {
+fn found_in_blacklist(text: &str, blacklist: &str) -> bool {
     for phrase in blacklist.lines() {
-        if title.contains(phrase) {
+        if text.contains(phrase) {
             return true;
         }
     }
@@ -204,8 +280,8 @@ mod test {
             ("КККККК", true),
             ("КККК      К   К ", true),
         ];
-        for (title, expected) in cases {
-            assert_eq!(contains_out_of_range_char(title), expected);
+        for (text, expected) in cases {
+            assert_eq!(contains_out_of_range_char(text), expected);
         }
     }
 
@@ -220,35 +296,35 @@ mod test {
 
     #[test]
     fn finding_year_in_titles() {
-        assert!(!Movie {
+        assert!(!SimpleMovie {
             title: "laksdfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(!Movie {
+        assert!(!SimpleMovie {
             title: "laks1234dfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(!Movie {
+        assert!(!SimpleMovie {
             title: "laks1234 0000 dfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 2000 dfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 aksdj 233 2000".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 aksdj 233 (2002)".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 aksdj 233 (200) .2005.".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "a2000b".to_string(),
             url: "".to_string(),
         }.contains_year());
