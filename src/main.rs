@@ -4,6 +4,7 @@ extern crate diesel;
 
 mod schema;
 use schema::movie::dsl::*;
+use schema::movie;
 
 use crossterm::style::{
     Attribute::{Bold, Reset},
@@ -31,6 +32,13 @@ type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 #[derive(Queryable, Debug)]
 struct Movie {
     id: i32,
+    title: String,
+    url: String,
+}
+
+#[derive(Insertable)]
+#[table_name="movie"]
+struct NewMovie {
     title: String,
     url: String,
 }
@@ -84,6 +92,17 @@ fn main() -> MyResult<()> {
     let db_movies = movie
         .load::<Movie>(&db_conn);
     dbg!(db_movies);
+
+    let new_movie = NewMovie {
+        title: "NEW_TITLE".to_string(),
+        url: "NEW_URL".to_string(),
+    };
+
+    diesel::insert_into(movie::table)
+        .values(&new_movie)
+        .get_result::<Movie>(&db_conn)
+        .expect("Error saving new movie");
+
     //
 
     let matches = clap::Command::new("vidatitles")
@@ -135,8 +154,6 @@ fn main() -> MyResult<()> {
         }
         simple_movies.push(simple_movie);
     }
-
-    dbg!(&simple_movies);
 
     simple_movies.sort_by_key(|m| m.title.clone());
 
