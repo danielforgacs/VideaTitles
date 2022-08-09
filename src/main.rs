@@ -118,23 +118,7 @@ fn main() -> Result<(), String> {
 fn main_old() -> MyResult<()> {
     dotenv::dotenv().ok();
 
-    //
     let db_conn = establish_db_conn();
-    let db_movies = movie
-        .load::<Movie>(&db_conn);
-    dbg!(db_movies);
-
-    let new_movie = NewMovie {
-        title: "NEW_TITLE".to_string(),
-        url: "NEW_URL".to_string(),
-    };
-
-    diesel::insert_into(movie::table)
-        .values(&new_movie)
-        .get_result::<Movie>(&db_conn)
-        .expect("Error saving new movie");
-
-    //
 
     let matches = clap::Command::new("vidatitles")
         .about(VERSION)
