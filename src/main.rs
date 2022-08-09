@@ -50,6 +50,15 @@ struct SimpleMovie {
     url: String,
 }
 
+impl NewMovie {
+    fn new(new_title: String, new_url: String) -> Self {
+        Self {
+            title: new_title,
+            url: new_url,
+        }
+    }
+}
+
 impl SimpleMovie {
     fn from_capture(cap: regex::Captures) -> Self {
         SimpleMovie {
@@ -152,6 +161,11 @@ fn main() -> MyResult<()> {
     let mut simple_movies: Vec<SimpleMovie> = vec![];
     for cap in re.captures_iter(&pages.join("\n")) {
         let simple_movie = SimpleMovie::from_capture(cap);
+        let new_movie = NewMovie::new(
+            simple_movie.title.clone(),
+            simple_movie.url.clone()
+        );
+        create_movie(new_movie);
         if contains_out_of_range_char(&simple_movie.title) {
             eprintln!("{:<25}{}", "bad char:", simple_movie);
             continue;
@@ -162,6 +176,8 @@ fn main() -> MyResult<()> {
         }
         simple_movies.push(simple_movie);
     }
+
+
 
     simple_movies.sort_by_key(|m| m.title.clone());
 
