@@ -88,30 +88,33 @@ impl std::fmt::Display for SimpleMovie {
     }
 }
 
-fn establish_db_conn() -> PgConnection {
+fn establish_db_conn() -> Result<PgConnection, String> {
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var must be set.");
-    PgConnection::establish(&db_url).expect("Can't connect to the database.")
+    Ok(PgConnection::establish(&db_url).map_err(|_| "Can't connect to the database.".to_string())?)
 }
 
-fn insert_new_movie(new_movie: NewMovie) {
-    let db_conn = establish_db_conn();
+fn insert_new_movie(new_movie: NewMovie) -> Result<(), String> {
+    let db_conn = establish_db_conn()?;
     diesel::insert_into(movie::table)
         .values(&new_movie)
         .get_result::<Movie>(&db_conn)
         .expect("Can't insert new movie.");
+    Ok(())
 }
 
-fn insert_new_movies(new_movies: Vec<NewMovie>) {
-    let db_conn = establish_db_conn();
+fn insert_new_movies(new_movies: Vec<NewMovie>) -> Result<(), String> {
+    let db_conn = establish_db_conn()?;
     diesel::insert_into(movie::table)
         .values(&new_movies)
         .get_result::<Movie>(&db_conn)
         .expect("Can't insert new movies.");
+    Ok(())
 }
 
 fn main() -> Result<(), String> {
     dotenv::dotenv().ok();
     let config = config::get_config()?;
+    let db_conn = establish_db_conn()?;
     main_old().unwrap();
     Ok(())
 }
