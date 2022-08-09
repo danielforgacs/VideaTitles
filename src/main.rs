@@ -109,7 +109,11 @@ fn insert_new_movies(new_movies: Vec<NewMovie>) {
         .expect("Can't insert new movies.");
 }
 
-fn main() -> MyResult<()> {
+fn main() {
+    let config = config::get_config();
+}
+
+fn main_old() -> MyResult<()> {
     dotenv::dotenv().ok();
 
     //
