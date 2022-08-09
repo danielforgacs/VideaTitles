@@ -34,7 +34,10 @@ impl Config {
 pub fn get_config() -> Config {
     let matches = clap::Command::new("vidatitles")
         .about(VERSION)
-        .arg(clap::Arg::new("pagecount").default_value("1"))
+        .arg(
+            clap::Arg::new("pagecount")
+            .default_value("1")
+        )
         .arg(
             clap::Arg::new("pageoffset")
                 .short('o')
