@@ -110,6 +110,7 @@ fn insert_new_movies(new_movies: Vec<NewMovie>) {
 }
 
 fn main() -> Result<(), String> {
+    dotenv::dotenv().ok();
     let config = config::get_config()?;
     Ok(())
 }
