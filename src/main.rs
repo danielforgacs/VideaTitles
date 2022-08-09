@@ -93,12 +93,20 @@ fn establish_db_conn() -> PgConnection {
     PgConnection::establish(&db_url).expect("Can't connect to the database.")
 }
 
-fn create_movie(new_movie: NewMovie) {
+fn insert_new_movie(new_movie: NewMovie) {
     let db_conn = establish_db_conn();
     diesel::insert_into(movie::table)
         .values(&new_movie)
         .get_result::<Movie>(&db_conn)
         .expect("Can't insert new movie.");
+}
+
+fn insert_new_movies(new_movies: Vec<NewMovie>) {
+    let db_conn = establish_db_conn();
+    diesel::insert_into(movie::table)
+        .values(&new_movies)
+        .get_result::<Movie>(&db_conn)
+        .expect("Can't insert new movies.");
 }
 
 fn main() -> MyResult<()> {
@@ -159,13 +167,21 @@ fn main() -> MyResult<()> {
 
     let blacklist = read_or_create_blacklist()?;
     let mut simple_movies: Vec<SimpleMovie> = vec![];
+    let mut new_movies: Vec<NewMovie> = vec![];
     for cap in re.captures_iter(&pages.join("\n")) {
         let simple_movie = SimpleMovie::from_capture(cap);
         let new_movie = NewMovie::new(
             simple_movie.title.clone(),
             simple_movie.url.clone()
         );
-        create_movie(new_movie);
+        new_movies.push(
+            NewMovie::new(
+                simple_movie.title.clone(),
+                simple_movie.url.clone()
+            )
+        );
+
+        // insert_new_movie(new_movie);
         if contains_out_of_range_char(&simple_movie.title) {
             eprintln!("{:<25}{}", "bad char:", simple_movie);
             continue;
@@ -176,6 +192,7 @@ fn main() -> MyResult<()> {
         }
         simple_movies.push(simple_movie);
     }
+    insert_new_movies(new_movies);
 
 
 
