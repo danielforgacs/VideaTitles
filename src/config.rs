@@ -1,6 +1,7 @@
 const VERSION: &str = "2022.5.17";
 const MAX_PAGES: u16 = 250;
 
+#[derive(Debug)]
 pub struct Config {
     url_prefix: String,
     page_count: u16,
@@ -31,7 +32,7 @@ impl Config {
     }
 }
 
-pub fn get_config() -> Config {
+pub fn get_config() -> Result<Config, String> {
     let matches = clap::Command::new("vidatitles")
         .about(VERSION)
         .arg(
@@ -55,14 +56,17 @@ pub fn get_config() -> Config {
         .value_of("pageoffset")
         .unwrap()
         .parse::<u16>()
-        .unwrap();
+        .map_err(|_| format!("Page offset must be in range: 0 - {}.", 9999))?;
 
     if !(1..=MAX_PAGES).contains(&page_count) {
-        println!("Page count must be in range: 1 - {}. Using 1.", MAX_PAGES);
-        page_count = 1;
+        return Err(
+            format!("Page count must be in range: 1 - {}.", MAX_PAGES)
+        );
     }
 
-    Config::new()
-        .set_page_count(page_count)
-        .set_page_offset(page_offset)
+    Ok(
+        Config::new()
+            .set_page_count(page_count)
+            .set_page_offset(page_offset)
+    )
 }

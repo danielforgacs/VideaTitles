@@ -110,7 +110,14 @@ fn insert_new_movies(new_movies: Vec<NewMovie>) {
 }
 
 fn main() {
-    let config = config::get_config();
+    let config = match config::get_config() {
+        Ok(config) => config,
+        Err(msg) => {
+            println!("{}", msg);
+            return;
+        }
+    };
+    dbg!(&config);
 }
 
 fn main_old() -> MyResult<()> {
