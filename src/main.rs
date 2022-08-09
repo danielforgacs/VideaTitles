@@ -28,15 +28,15 @@ const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug, Queryable)]
-struct Movie {
+#[derive(Debug)]
+struct SimpleMovie {
     title: String,
     url: String,
 }
 
-impl Movie {
+impl SimpleMovie {
     fn from_capture(cap: regex::Captures) -> Self {
-        Movie {
+        SimpleMovie {
             title: cap[2].to_owned(),
             url: cap[1].to_owned(),
         }
@@ -57,7 +57,7 @@ impl Movie {
     }
 }
 
-impl std::fmt::Display for Movie {
+impl std::fmt::Display for SimpleMovie {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:<70}{}", self.title, self.url)
     }
@@ -111,9 +111,9 @@ fn main() -> MyResult<()> {
     }
 
     let blacklist = read_or_create_blacklist()?;
-    let mut movies: Vec<Movie> = vec![];
+    let mut movies: Vec<SimpleMovie> = vec![];
     for cap in re.captures_iter(&pages.join("\n")) {
-        let movie = Movie::from_capture(cap);
+        let movie = SimpleMovie::from_capture(cap);
         if contains_out_of_range_char(&movie.title) {
             eprintln!("{:<25}{}", "bad char:", movie);
             continue;
@@ -244,35 +244,35 @@ mod test {
 
     #[test]
     fn finding_year_in_titles() {
-        assert!(!Movie {
+        assert!(!SimpleMovie {
             title: "laksdfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(!Movie {
+        assert!(!SimpleMovie {
             title: "laks1234dfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(!Movie {
+        assert!(!SimpleMovie {
             title: "laks1234 0000 dfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 2000 dfhj".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 aksdj 233 2000".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 aksdj 233 (2002)".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "laks123 aksdj 233 (200) .2005.".to_string(),
             url: "".to_string(),
         }.contains_year());
-        assert!(Movie {
+        assert!(SimpleMovie {
             title: "a2000b".to_string(),
             url: "".to_string(),
         }.contains_year());
