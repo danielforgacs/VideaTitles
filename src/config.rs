@@ -51,7 +51,8 @@ pub fn get_config() -> Result<Config, String> {
         .value_of("pagecount")
         .unwrap()
         .parse::<u16>()
-        .unwrap();
+        .map_err(|_| format!("Page count must be in range: 1 - {}.", MAX_PAGES))?;
+
     let page_offset = matches
         .value_of("pageoffset")
         .unwrap()
