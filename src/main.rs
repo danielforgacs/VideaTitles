@@ -3,7 +3,7 @@ mod config;
 extern crate diesel;
 
 mod schema;
-// use schema::movie::dsl::*;
+use schema::movie::dsl::*;
 
 use crossterm::style::{
     Attribute::{Bold, Reset},
@@ -105,43 +105,43 @@ fn main() -> MyResult<()> {
     let mut pages: Vec<String> = Vec::new();
 
     for index in 1..page_count + 1 {
-        let url = format!("{}{}", URL_TEMPLATE, index + page_offset);
-        let response = reqwest::blocking::get(url)?;
+        let request_url = format!("{}{}", URL_TEMPLATE, index + page_offset);
+        let response = reqwest::blocking::get(request_url)?;
         pages.push(response.text()?);
     }
 
     let blacklist = read_or_create_blacklist()?;
-    let mut movies: Vec<SimpleMovie> = vec![];
+    let mut simple_movies: Vec<SimpleMovie> = vec![];
     for cap in re.captures_iter(&pages.join("\n")) {
-        let movie = SimpleMovie::from_capture(cap);
-        if contains_out_of_range_char(&movie.title) {
-            eprintln!("{:<25}{}", "bad char:", movie);
+        let simple_movie = SimpleMovie::from_capture(cap);
+        if contains_out_of_range_char(&simple_movie.title) {
+            eprintln!("{:<25}{}", "bad char:", simple_movie);
             continue;
         }
-        if found_in_blacklist(&movie.title, &blacklist) {
-            eprintln!("{:<25}{}", "blacklisted:", movie);
+        if found_in_blacklist(&simple_movie.title, &blacklist) {
+            eprintln!("{:<25}{}", "blacklisted:", simple_movie);
             continue;
         }
-        movies.push(movie);
+        simple_movies.push(simple_movie);
     }
 
-    dbg!(&movies);
+    dbg!(&simple_movies);
 
-    movies.sort_by_key(|m| m.title.clone());
+    simple_movies.sort_by_key(|m| m.title.clone());
 
     println!();
 
     let mut previous_movie = String::from("");
-    for movie in movies {
-        if is_similar_title(&movie.title, &previous_movie) {
+    for simple_movie in simple_movies {
+        if is_similar_title(&simple_movie.title, &previous_movie) {
             print!("{}", SetForegroundColor(Color::DarkGrey));
-        } else if movie.contains_year() {
+        } else if simple_movie.contains_year() {
             print!("{}", SetForegroundColor(Color::Green));
             print!("{}", Bold);
         };
-        print!("{}", movie);
+        print!("{}", simple_movie);
         println!("{}", Reset);
-        previous_movie = movie.title.clone();
+        previous_movie = simple_movie.title.clone();
     }
 
     Ok(())
@@ -165,9 +165,9 @@ fn is_similar_title(t0: &str, t1: &str) -> bool {
     false
 }
 
-fn contains_out_of_range_char(title: &str) -> bool {
+fn contains_out_of_range_char(text: &str) -> bool {
     let mut bad_char_count = 0;
-    for letter in title.chars() {
+    for letter in text.chars() {
         let letter_b = letter as u32;
         if letter_b > MAX_UTF8 {
             bad_char_count += 1;
@@ -179,9 +179,9 @@ fn contains_out_of_range_char(title: &str) -> bool {
     false
 }
 
-fn found_in_blacklist(title: &str, blacklist: &str) -> bool {
+fn found_in_blacklist(text: &str, blacklist: &str) -> bool {
     for phrase in blacklist.lines() {
-        if title.contains(phrase) {
+        if text.contains(phrase) {
             return true;
         }
     }
@@ -228,8 +228,8 @@ mod test {
             ("КККККК", true),
             ("КККК      К   К ", true),
         ];
-        for (title, expected) in cases {
-            assert_eq!(contains_out_of_range_char(title), expected);
+        for (text, expected) in cases {
+            assert_eq!(contains_out_of_range_char(text), expected);
         }
     }
 
