@@ -5,6 +5,7 @@ use crossterm::style::{
     Color, SetForegroundColor,
 };
 use std::io::Read;
+use dotenv;
 
 const VERSION: &str = "2022.5.17";
 const MAX_PAGES: u16 = 250;
@@ -56,6 +57,7 @@ impl std::fmt::Display for Movie {
 }
 
 fn main() -> MyResult<()> {
+    dotenv::dotenv().ok();
     let matches = clap::Command::new("vidatitles")
         .about(VERSION)
         .arg(clap::Arg::new("pagecount").default_value("1"))
