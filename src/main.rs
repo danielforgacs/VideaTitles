@@ -1,3 +1,5 @@
+mod config;
+
 use crossterm::style::{
     Attribute::{Bold, Reset},
     Color, SetForegroundColor,
@@ -18,6 +20,7 @@ const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+#[derive(Debug)]
 struct Movie {
     title: String,
     url: String,
@@ -102,6 +105,8 @@ fn main() -> MyResult<()> {
         }
         movies.push(movie);
     }
+
+    dbg!(&movies);
 
     movies.sort_by_key(|m| m.title.clone());
 
