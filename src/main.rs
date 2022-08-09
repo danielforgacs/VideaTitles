@@ -109,15 +109,9 @@ fn insert_new_movies(new_movies: Vec<NewMovie>) {
         .expect("Can't insert new movies.");
 }
 
-fn main() {
-    let config = match config::get_config() {
-        Ok(config) => config,
-        Err(msg) => {
-            println!("{}", msg);
-            return;
-        }
-    };
-    dbg!(&config);
+fn main() -> Result<(), String> {
+    let config = config::get_config()?;
+    Ok(())
 }
 
 fn main_old() -> MyResult<()> {
