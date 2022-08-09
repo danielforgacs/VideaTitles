@@ -1,4 +1,9 @@
 mod config;
+#[macro_use]
+extern crate diesel;
+
+mod schema;
+// use schema::movie::dsl::*;
 
 use crossterm::style::{
     Attribute::{Bold, Reset},
@@ -6,6 +11,8 @@ use crossterm::style::{
 };
 use std::io::Read;
 use dotenv;
+use diesel::prelude::*;
+use diesel::pg::PgConnection;
 
 const VERSION: &str = "2022.5.17";
 const MAX_PAGES: u16 = 250;
@@ -21,7 +28,7 @@ const YEAR_MAX: u16 = 2035;
 
 type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug)]
+#[derive(Debug, Queryable)]
 struct Movie {
     title: String,
     url: String,
@@ -56,8 +63,18 @@ impl std::fmt::Display for Movie {
     }
 }
 
+fn establish_db_conn() -> PgConnection {
+    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var must be set.");
+    PgConnection::establish(&db_url).expect("Can't connect to the database.")
+}
+
 fn main() -> MyResult<()> {
     dotenv::dotenv().ok();
+
+    //
+    // movies
+    //
+
     let matches = clap::Command::new("vidatitles")
         .about(VERSION)
         .arg(clap::Arg::new("pagecount").default_value("1"))
